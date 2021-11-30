@@ -5,17 +5,17 @@ from numpy import linspace
 import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.metrics import roc_curve, auc, confusion_matrix, f1_score
-from sklearn.metrics import roc_curve, auc, confusion_matrix, f1_score
+from sklearn.metrics import roc_curve, auc, confusion_matrix, f1_score,ConfusionMatrixDisplay
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
 from sklearn.metrics import mean_squared_error, classification_report
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.dummy import DummyClassifier
+from sklearn.multiclass import OneVsRestClassifier
 
 x, y = [], []  # Features (x) and labels (y)
-CSV_PATH = 'C:\\Users\\kesha\\Desktop\\Machine_Learning\\MLProject_30\\dataset\\labelled_dataset_2.csv'
+CSV_PATH = 'C:\\Users\\kesha\\Desktop\\Machine_Learning\\MLProject_30\\dataset\\labelled_dataset_33.csv'
 
 def extract_csv(path):
     global x, y
@@ -44,17 +44,25 @@ def dummy_classifier(features, labels):
 
     print("Most Frequent Baseline Model:")
     print("F1 score \n", f1_score(ytest, __dummy_pred, average='weighted'))
-    print("Confusion matrix: \n", confusion_matrix(ytest, __dummy_pred))
-
+    cm = confusion_matrix(ytest, __dummy_pred, labels = __dummy_clf.classes_)
+    print("Confusion matrix: \n", cm)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, 
+     display_labels=__dummy_clf.classes_)
+    disp.plot(cmap = 'Blues')
+    #plt.show()
 
 def logistic_regression_wo_pen(features, labels):
     print("\n Logistic regression without penalty\n")
 
     xtrain, xtest, ytrain, ytest = train_test_split(features, labels, test_size=0.2)
     model = LogisticRegression(penalty='none',multi_class='ovr', solver='lbfgs',max_iter = 5000)
-    model.fit(xtest, ytest)
+    model.fit(xtrain, ytrain)
+    ypred = model.predict(xtest)
     scores = cross_val_score(model,xtest,ytest, cv = 5, scoring='f1_weighted')
-    print(scores)
+    print("F1 scores:\n")
+    print("Mean f1 score using 5-fold cross validation", scores.mean())
+    cm = confusion_matrix(ytest, ypred)
+    print("Confusion matrix: \n", cm)
 
 
 def logistic_regression(features, labels):
@@ -70,6 +78,7 @@ def logistic_regression(features, labels):
 
     for c in C:
         model = LogisticRegression(penalty='l2',multi_class='ovr', solver='lbfgs',C = c, max_iter = 5000)
+        #model = OneVsRestClassifier(LinearSVC(penalty='l2', dual=True, C=4, max_iter=5000))
         model.fit(xtrain,ytrain)
         scores = cross_val_score(model, xtest, ytest, cv = 5, scoring='f1_weighted')
         print(scores)
@@ -95,20 +104,21 @@ def logistic_regression(features, labels):
     print("Confusion matrix:\n", confusion_matrix(ytest, ypred))
 
 
-    # ROC curve - ERROR "multiclass format is not supported"
-'''    from sklearn.metrics import roc_curve
+'''    # ROC curve - ERROR "multiclass format is not supported"
+    from sklearn.metrics import roc_curve
     fpr, tpr, _ = roc_curve(ytest,model.decision_function(xtest))
     plt.plot(fpr,tpr, 'blue', label = 'Logistic regression')
     plt.xlabel('False positive rate')
     plt.ylabel('True positive rate')'''
 
 
+
 extract_csv(CSV_PATH)
 print(f"Total number of dataset: {len(x)}")
-dummy_classifier(x, y)
+#dummy_classifier(x, y)
 # Logistic regression without penalty
 logistic_regression_wo_pen(x,y)
 # with penalty
-logistic_regression(x,y)
+#logistic_regression(x,y)
 
 
