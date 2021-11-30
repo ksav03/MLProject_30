@@ -11,11 +11,11 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 
 CSV_PATH = 'dataset/labelled_dataset_2.csv'
-x, y = [], []  # Features (x) and labels (y)
+x, y, xtemp = [], [], []  # Features (x) and labels (y)
 
 
 def extract_csv(path):
-    global x, y
+    global x, y, xtemp
     df = pd.read_csv(path)
     x0 = df.iloc[:, 0]  # Station ID
     x1 = df.iloc[:, 1]  # 1st feature: Total number of stands
@@ -27,7 +27,8 @@ def extract_csv(path):
     x7 = df.iloc[:, 7]  # 7th feature: Ratio Bike / Stand
 
     # x = np.column_stack((x1, x2, x3, x4, x5, x6))  # Combine features into one matrix --> x
-    x = np.column_stack((x3, x4, x7, x3))
+    x = np.column_stack((x3, x4, x7))
+    xtemp = np.column_stack((x3, x4, x7, x3))
     y = df.iloc[:, 8]  # Third column as coorespondent labels
     # y = df.iloc[:, 5]
 
@@ -38,7 +39,7 @@ def separate_data_by_label(feature, label):
     # x1* contains data labelled as +1 while x2* contains data labelled as -1
     __coloum_num = 0
     x11, x12, x21, x22, x31, x32 = [], [], [], [], [], []
-    for day, x1, x2, _ in feature:
+    for day, x1, x2 in feature:
         if label[__coloum_num] == 1:      # Sort out labelled +1 features
             x11.append(x1)
             x12.append(x2)
@@ -73,12 +74,13 @@ def data_visualization(features, labels):
     plt.legend(loc='upper right')
 
     # Linear plot:
+    global xtemp
     fig2 = plt.figure('Data Visualization: lineplot', figsize=(16, 10))
     plt.title('Data Visualization: Sample week for station 2', fontsize=22)
-    day_value = features[1152:3168, 3]
+    day_value = xtemp[1152:3168, 3]
     para_value = (day_value - 1) * 1440
-    x_value = features[1152:3168, 1] + para_value
-    y_value = features[1152:3168, 2]
+    x_value = xtemp[1152:3168, 1] + para_value
+    y_value = xtemp[1152:3168, 2]
     plt.xlabel('Timeline (minute)', fontsize=18)
     plt.ylabel('Bikes / Total stands', fontsize=18)
     plt.plot(x_value, y_value, linewidth=3)
