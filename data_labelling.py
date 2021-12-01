@@ -78,11 +78,11 @@ def extract_data(data_, id_):
 
         # if more than 2 bikes are at the station no bikes needed, label =
         if extracted_data[counter, 5] <= threshold:                 # Below 15%: Label as 1 for adding
-            extracted_data[counter - 6:counter + 1, 6] = 1
+            extracted_data[counter - 6, 6] = 1
         elif extracted_data[counter, 5] >= (1 - threshold):         # Over 85%: Label as 2 for removing bikes
-            extracted_data[counter - 6:counter + 1, 6] = 2
+            extracted_data[counter - 6, 6] = 2
         else:
-            extracted_data[counter, 6] = 0
+            extracted_data[counter - 6, 6] = 0
 
         counter += 1
 
@@ -90,7 +90,7 @@ def extract_data(data_, id_):
                             'Total Stand': extracted_data[:, 1],
                             'Week': week_int,
                             'Weekday': weekday_int,
-                            'Minute' : minute_int,
+                            'Minute': minute_int,
                             'Available Stands': extracted_data[:, 3],
                             'Available Bikes': extracted_data[:, 4],
                             'Ratio BikeVsStand': extracted_data[:, 5],
