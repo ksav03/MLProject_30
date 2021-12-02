@@ -16,12 +16,11 @@ from sklearn.multiclass import OneVsRestClassifier
 import sys
 
 x, y = [], []  # Features (x) and labels (y)
-#CSV_PATH = 'C:\\Users\\kesha\\Desktop\\Machine_Learning\\MLProject_30\\new_dataset\\labelled_dataset_33.csv'
-CSV_PATH = 'dataset/labelled_dataset_2.csv'
+CSV_PATH = 'C:\\Users\\kesha\\Desktop\\Machine_Learning\\MLProject_30\\dataset\\labelled_dataset_33.csv'
 
 
 def extract_csv(path):
-    global x, y
+    global x, y, time
     df = pd.read_csv(path)
     n = len(df.iloc[:, 0])
     x0 = df.iloc[:n, 0]  # Station ID
@@ -49,8 +48,7 @@ def dummy_classifier(features, labels):
     print("F1 score \n", f1_score(ytest, __dummy_pred, average='weighted'))
     cm = confusion_matrix(ytest, __dummy_pred, labels = __dummy_clf.classes_)
     print("Confusion matrix: \n", cm)
-
-
+    confusion_matrix_visual(__dummy_clf, cm, 'Confusion matrix - Baseline Model')
 
 def confusion_matrix_visual(model, cm, title):
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_)
@@ -67,10 +65,13 @@ def logistic_regression_wo_pen(features, labels):
     model.fit(xtrain, ytrain)
     ypred = model.predict(xtest)
     scores = cross_val_score(model,xtest,ytest, cv = 5, scoring='f1_weighted')
-    print("F1 scores:\n")
+    print("F1 scores:")
     print("Mean f1 score using 5-fold cross validation", scores.mean())
     cm = confusion_matrix(ytest, ypred)
-    print("Confusion matrix: \n", cm)
+    #print("Confusion matrix: \n", cm)
+    confusion_matrix_visual(model, cm, 'Confusion matrix - LR without penalty')
+    print(classification_report(ytest,ypred))
+
 
 
 def logistic_regression(features, labels):
@@ -78,7 +79,7 @@ def logistic_regression(features, labels):
     from sklearn.linear_model import LogisticRegression
     from sklearn.model_selection import cross_val_score
 
-    C = [0.001, 0.1, 10, 50]
+    C = [0.001, 0.1, 1, 5, 10, 50]
     xtrain, xtest, ytrain, ytest = train_test_split(features, labels, test_size=0.2)
 
     mean_error = []
@@ -89,7 +90,7 @@ def logistic_regression(features, labels):
         #model = OneVsRestClassifier(LinearSVC(penalty='l2', dual=True, C=4, max_iter=5000))
         model.fit(xtrain,ytrain)
         scores = cross_val_score(model, xtest, ytest, cv = 5, scoring='f1_weighted')
-        print(scores)
+        print(scores.mean())
         mean_error.append(np.array(scores).mean())
         std_error.append(np.array(scores).std())
 
@@ -109,7 +110,9 @@ def logistic_regression(features, labels):
     ypred = model.predict(xtest)
     print("\n\n----------------------Logistic Regression Evaluation (without penalty)----------------------\n\n")
     print(classification_report(ytest,ypred))
-    print("Confusion matrix:\n", confusion_matrix(ytest, ypred))
+    cm = confusion_matrix(ytest, ypred)
+    #print("Confusion matrix:\n", cm)
+    confusion_matrix_visual(model, cm, 'Confusion Matrix - LR, penalty = none')
 
 
 def roc_plot(features, labels):
@@ -140,13 +143,38 @@ def roc_plot(features, labels):
     plt.legend(loc='lower right')
     plt.show()
 
-extract_csv(CSV_PATH)
-print(f"Total number of dataset: {len(x)}")
-dummy_classifier(x, y)
-# Logistic regression without penalty
-#logistic_regression_wo_pen(x,y)
-# with penalty
-logistic_regression(x,y)
-roc_plot(x, y)
 
+
+extract_csv(CSV_PATH)
+
+counter = 0
+arr = []
+y_arr = []
+
+for i, item in enumerate(x):
+    counter += 1
+    # if counter % 3 == 0 and (y[i] == 0 or y[i] == 1):
+    if counter % 6 == 0 and (y[i] == 0):
+        arr.append(item)
+        y_arr.append(y[i])
+    # if y[i] == 2:
+    if y[i] != 0:
+        arr.append(item)
+        y_arr.append(y[i])
+        # print(item)
+
+arr = np.asarray(arr)
+y_arr = np.asarray(y_arr)
+
+print(arr)
+
+
+print(f"Total number of dataset: {len(x)}")
+dummy_classifier(arr, y_arr)
+## Logistic regression without penalty
+#
+#logistic_regression_wo_pen(arr,y_arr)
+## with penalty
+logistic_regression(arr,y_arr)
+roc_plot(arr, y_arr)
 
