@@ -53,7 +53,13 @@ def dummy_classifier(features, labels):
 def confusion_matrix_visual(model, cm, title):
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_)
     disp.plot(cmap = 'Blues')
-    plt.title(title)
+    for labels in disp.text_.ravel():
+        labels.set_fontsize(20)
+    plt.title(title, fontsize = 18)
+    plt.xlabel('Predicted Label', fontsize = 18)
+    plt.ylabel('True Label', fontsize = 18)
+    #plt.rc('xtick', labelsize=10)
+    #plt.rc('ytick', labelsize=10)
     plt.show()
 
 
@@ -73,13 +79,12 @@ def logistic_regression_wo_pen(features, labels):
     print(classification_report(ytest,ypred))
 
 
-
 def logistic_regression(features, labels):
     print("\nLogistic regression model with penalty l2\n")
     from sklearn.linear_model import LogisticRegression
     from sklearn.model_selection import cross_val_score
 
-    C = [0.001, 0.1, 1, 5, 10, 50]
+    C = [ 0.01, 0.1, 1, 5, 10, 40]
     xtrain, xtest, ytrain, ytest = train_test_split(features, labels, test_size=0.2)
 
     mean_error = []
@@ -95,10 +100,13 @@ def logistic_regression(features, labels):
         std_error.append(np.array(scores).std())
 
     # Plot cross-validation result for C parameter
-    plt.figure(figsize=(9,9))
+    plt.figure()
     plt.errorbar(C, mean_error, yerr=std_error, linewidth = 3)
-    plt.xlabel('c')
-    plt.ylabel('F1 Score')
+    plt.xlabel('C', fontsize = 18)
+    plt.ylabel('F1 Score', fontsize = 18)
+    plt.title('Cross-validation to determine c', fontsize = 18)
+    plt.rc('xtick', labelsize=14)
+    plt.rc('ytick', labelsize=14)
     #plt.xlim((c_range[0],c_range[len(c_range)-1]))
     #plt.savefig('crossvalidation for c using F1 score.png')
     plt.show()
@@ -133,11 +141,11 @@ def roc_plot(features, labels):
         auc_lr[i] = auc(fpr[i], tpr[i])
 
     fig7 = plt.figure(figsize=(8, 6))
-    plt.title("ROC plot of kNN classifier", fontsize=20)
+    plt.title("ROC plot of Logistic Regression classifier", fontsize=16)
     plt.plot([0, 1], [0, 1], color='black', linestyle='--', label='Baseline Classifier: AUC = 0.50')
-    plt.plot(fpr[0], tpr[0], color='blue', label='kNN Class 0 Classifiers: AUC = %0.4f' % auc_lr[0])
-    plt.plot(fpr[1], tpr[1], color='red', label='kNN Class 1 Classifiers: AUC = %0.4f' % auc_lr[1])
-    plt.plot(fpr[2], tpr[2], color='green', label='kNN Class 2 Classifiers: AUC = %0.4f' % auc_lr[2])
+    plt.plot(fpr[0], tpr[0], color='blue', label='LR Class 0 Classifiers: AUC = %0.4f' % auc_lr[0])
+    plt.plot(fpr[1], tpr[1], color='red', label='LR Class 1 Classifiers: AUC = %0.4f' % auc_lr[1])
+    plt.plot(fpr[2], tpr[2], color='green', label='LR Class 2 Classifiers: AUC = %0.4f' % auc_lr[2])
     plt.xlabel('False positive rate', fontsize=16)
     plt.ylabel('True positive rate', fontsize=16)
     plt.legend(loc='lower right')
@@ -154,7 +162,7 @@ y_arr = []
 for i, item in enumerate(x):
     counter += 1
     # if counter % 3 == 0 and (y[i] == 0 or y[i] == 1):
-    if counter % 6 == 0 and (y[i] == 0):
+    if counter % 3 == 0 and (y[i] == 0):
         arr.append(item)
         y_arr.append(y[i])
     # if y[i] == 2:
@@ -170,7 +178,7 @@ print(arr)
 
 
 print(f"Total number of dataset: {len(x)}")
-dummy_classifier(arr, y_arr)
+#dummy_classifier(arr, y_arr)
 ## Logistic regression without penalty
 #
 #logistic_regression_wo_pen(arr,y_arr)
