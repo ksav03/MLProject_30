@@ -108,7 +108,7 @@ def extract_data(data_, id_):
 
 def main(args):
     data = read_file(df)
-    for id_ in range(2, 118):
+    for id_ in (2, 118):
         extract_data(data, id_)
 
 
