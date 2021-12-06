@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 
@@ -114,7 +116,7 @@ def roc_plot(features, labels):
     best_k = 16             # Optimal parameter for kNN classifier
     best_depth = 4          # Optimal parameter for Decision Trees classifier
 
-    xtrain, xtest, ytrain, ytest = train_test_split(features, labels, test_size=0.2)
+    xtrain, xtest, ytrain, ytest = train_test_split(features, labels, test_size=0.4)
 
     print(f"\n\n----------------------kNN model with k = {best_k}----------------------\n")
     __knn_model = KNeighborsClassifier(n_neighbors=best_k, weights='distance')
@@ -132,27 +134,25 @@ def roc_plot(features, labels):
     print("F1 score: \n", f1_score(ytest, __pred, average='weighted'))
     print("Confusion matrix:\n", confusion_matrix(ytest, __pred))
 
-    # ROC for knn:
-    pred_prob_knn = __knn_model.predict_proba(xtest)
-    fpr_knn, tpr_knn, auc_knn = {}, {}, {}
-    for i in range(3):
-        fpr_knn[i], tpr_knn[i], _ = roc_curve(ytest, pred_prob_knn[:, i], pos_label=i)
-        auc_knn[i] = auc(fpr_knn[i], tpr_knn[i])
+    print(f"\n\n-----------------SVM model with c = 0.1-----------------\n")
+    svm_model = LinearSVC(penalty='l2', C=0.1, dual=False, max_iter=5000, class_weight='balanced', multi_class='ovr')
+    # svm_model = svm_model.fit(xtrain, ytrain)
+    svm_model = CalibratedClassifierCV(svm_model, method='isotonic', cv=5).fit(xtrain, ytrain)
+    __pred = svm_model.predict(xtest)
+    print(classification_report(ytest, __pred))
+    print("F1 score: \n", f1_score(ytest, __pred, average='weighted'))
+    print("Confusion matrix:\n", confusion_matrix(ytest, __pred))
 
+    print(f"\n\n-----------------Linear Regression model with no penalty-----------------\n")
+    lr_model = LogisticRegression(penalty='none', multi_class='ovr', solver='lbfgs', max_iter=5000)
+    lr_model.fit(xtrain, ytrain)
+    __pred = lr_model.predict(xtest)
+    print(classification_report(ytest, __pred))
+    print("F1 score: \n", f1_score(ytest, __pred, average='weighted'))
+    print("Confusion matrix:\n", confusion_matrix(ytest, __pred))
+
+    # Setup ROCs for displaying
     ytest_temp = make_binary_label_arr(ytest)
-    fpr_knn["micro"], tpr_knn["micro"], _ = roc_curve(ytest_temp.ravel(), pred_prob_knn.ravel())
-    auc_knn["micro"] = auc(fpr_knn["micro"], tpr_knn["micro"])
-
-    fig7 = plt.figure(figsize=(8, 6))
-    plt.title("ROC plots of kNN classifier", fontsize=20)
-    plt.plot([0, 1], [0, 1], color='black', linestyle='--', label='Baseline Classifier: AUC = 0.50')
-    plt.plot(fpr_knn[0], tpr_knn[0], color='blue', label='kNN Class 0 Classifiers: AUC = %0.4f' % auc_knn[0])
-    plt.plot(fpr_knn[1], tpr_knn[1], color='red', label='kNN Class 1 Classifiers: AUC = %0.4f' % auc_knn[1])
-    plt.plot(fpr_knn[2], tpr_knn[2], color='green', label='kNN Class 2 Classifiers: AUC = %0.4f' % auc_knn[2])
-    plt.xlabel('False positive rate', fontsize=16)
-    plt.ylabel('True positive rate', fontsize=16)
-    plt.legend(loc='lower right')
-
     # ROC for tree:
     pred_prob_tree = __tree_model.predict_proba(xtest)
     fpr_tree, tpr_tree, auc_tree = {}, {}, {}
@@ -160,26 +160,68 @@ def roc_plot(features, labels):
     for i in range(3):
         fpr_tree[i], tpr_tree[i], _ = roc_curve(ytest, pred_prob_tree[:, i], pos_label=i)
         auc_tree[i] = auc(fpr_tree[i], tpr_tree[i])
-
-    ytest_temp = make_binary_label_arr(ytest)
     fpr_tree["micro"], tpr_tree["micro"], _ = roc_curve(ytest_temp.ravel(), pred_prob_tree.ravel())
     auc_tree["micro"] = auc(fpr_tree["micro"], tpr_tree["micro"])
 
-    fig8 = plt.figure(figsize=(8, 6))
-    plt.title("ROC plots of Decision Tree classifier", fontsize=20)
-    plt.plot([0, 1], [0, 1], color='black', linestyle='--', label='Baseline Classifier: AUC = 0.50')
-    plt.plot(fpr_tree[0], tpr_tree[0], color='blue', label='DT Class 0 Classifiers: AUC = %0.4f' % auc_tree[0])
-    plt.plot(fpr_tree[1], tpr_tree[1], color='red', label='DT Class 1 Classifiers: AUC = %0.4f' % auc_tree[1])
-    plt.plot(fpr_tree[2], tpr_tree[2], color='green', label='DT Class 2 Classifiers: AUC = %0.4f' % auc_tree[2])
-    plt.xlabel('False positive rate', fontsize=16)
-    plt.ylabel('True positive rate', fontsize=16)
-    plt.legend(loc='lower right')
+    # ROC for svm:
+    # pred_prob_svm = svm_model.decision_function(xtest)
+    pred_prob_svm = svm_model.predict_proba(xtest)
+    fpr_svm, tpr_svm, auc_svm = {}, {}, {}
+    for i in range(3):
+        fpr_svm[i], tpr_svm[i], _ = roc_curve(ytest, pred_prob_svm[:, i], pos_label=i)
+        auc_svm[i] = auc(fpr_svm[i], tpr_svm[i])
+    print(auc_svm)
+    fpr_svm["micro"], tpr_svm["micro"], _ = roc_curve(ytest_temp.ravel(), pred_prob_svm.ravel())
+    auc_svm["micro"] = auc(fpr_svm["micro"], tpr_svm["micro"])
+
+    # ROC for knn:
+    pred_prob_knn = __knn_model.predict_proba(xtest)
+    fpr_knn, tpr_knn, auc_knn = {}, {}, {}
+    for i in range(3):
+        fpr_knn[i], tpr_knn[i], _ = roc_curve(ytest, pred_prob_knn[:, i], pos_label=i)
+        auc_knn[i] = auc(fpr_knn[i], tpr_knn[i])
+    print(auc_knn)
+    fpr_knn["micro"], tpr_knn["micro"], _ = roc_curve(ytest_temp.ravel(), pred_prob_knn.ravel())
+    auc_knn["micro"] = auc(fpr_knn["micro"], tpr_knn["micro"])
+
+    # ROC for Logistic Regression
+    pred_prob_lr = lr_model.predict_proba(xtest)
+    fpr_lr, tpr_lr, auc_lr = {}, {}, {}
+    for i in range(3):
+        fpr_lr[i], tpr_lr[i], _ = roc_curve(ytest, pred_prob_lr[:, i], pos_label=i)
+        auc_lr[i] = auc(fpr_lr[i], tpr_lr[i])
+    fpr_lr["micro"], tpr_lr["micro"], _ = roc_curve(ytest_temp.ravel(), pred_prob_lr.ravel())
+    auc_lr["micro"] = auc(fpr_lr["micro"], tpr_lr["micro"])
+    # fig7 = plt.figure(figsize=(8, 6))
+    # plt.title("ROC plots of kNN classifier", fontsize=20)
+    # plt.plot([0, 1], [0, 1], color='black', linestyle='--', label='Baseline Classifier: AUC = 0.50')
+    # plt.plot(fpr_knn[0], tpr_knn[0], color='blue', label='kNN Class 0 Classifiers: AUC = %0.4f' % auc_knn[0])
+    # plt.plot(fpr_knn[1], tpr_knn[1], color='red', label='kNN Class 1 Classifiers: AUC = %0.4f' % auc_knn[1])
+    # plt.plot(fpr_knn[2], tpr_knn[2], color='green', label='kNN Class 2 Classifiers: AUC = %0.4f' % auc_knn[2])
+    # plt.xlabel('False positive rate', fontsize=16)
+    # plt.ylabel('True positive rate', fontsize=16)
+    # plt.legend(loc='lower right')
+
+
+
+    # fig8 = plt.figure(figsize=(8, 6))
+    # plt.title("ROC plots of Decision Tree classifier", fontsize=20)
+    # plt.plot([0, 1], [0, 1], color='black', linestyle='--', label='Baseline Classifier: AUC = 0.50')
+    # plt.plot(fpr_tree[0], tpr_tree[0], color='blue', label='DT Class 0 Classifiers: AUC = %0.4f' % auc_tree[0])
+    # plt.plot(fpr_tree[1], tpr_tree[1], color='red', label='DT Class 1 Classifiers: AUC = %0.4f' % auc_tree[1])
+    # plt.plot(fpr_tree[2], tpr_tree[2], color='green', label='DT Class 2 Classifiers: AUC = %0.4f' % auc_tree[2])
+    # plt.xlabel('False positive rate', fontsize=16)
+    # plt.ylabel('True positive rate', fontsize=16)
+    # plt.legend(loc='lower right')
 
     fig9 = plt.figure(figsize=(8, 6))
-    plt.title("ROC plots of kNN and DT Classifiers", fontsize=20)
+    plt.title("ROC plots of Classifiers used", fontsize=20)
     plt.plot([0, 1], [0, 1], color='black', linestyle='--', label='Baseline Classifier: AUC = 0.50')
     plt.plot(fpr_knn["micro"], tpr_knn["micro"], color='green', label='kNN Classifier: AUC = %0.4f' % auc_knn["micro"])
     plt.plot(fpr_tree["micro"], tpr_tree["micro"], color='blue', label='DT Classifier: AUC = %0.4f' % auc_tree["micro"])
+    plt.plot(fpr_svm["micro"], tpr_svm["micro"], color='red', label='SVM Classifier: AUC = %0.4f' % auc_svm["micro"])
+    plt.plot(fpr_lr["micro"], tpr_lr["micro"], color='purple',
+             label='Logistic Regression Classifier: AUC = %0.4f' % auc_lr["micro"])
     plt.xlabel('False positive rate', fontsize=16)
     plt.ylabel('True positive rate', fontsize=16)
     plt.legend(loc='lower right')
@@ -188,7 +230,7 @@ def roc_plot(features, labels):
 def main(args):
     extract_csv(CSV_PATH)
     print(f"Total number of dataset: {len(x)}")
-    data_visualization(x, y)
+    # data_visualization(x, y)
 
     # ROC plots
     roc_plot(x, y)
