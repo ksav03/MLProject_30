@@ -15,6 +15,7 @@ and saves/returns new file with required data for given station.
 Original File Header - Station Id, time, last update, name, bike stands, available bike stands,
 available bikes, status, address, latitude, longitude
 '''
+count0, count1, count2 = 0, 0, 0
 
 
 def time_converter(time_arr):
@@ -48,6 +49,7 @@ def read_file(file):
 
 
 def extract_data(data_, id_):
+    global count1, count2, count0
     # return the indexes that get a match as tuple datatype
     x = (np.where(data_[:, 0] == id_))[0]
     print(f"\n\nTotal no. of data matching ID {id_}: {x.size}")
@@ -79,10 +81,13 @@ def extract_data(data_, id_):
         # if more than 2 bikes are at the station no bikes needed, label =
         if extracted_data[counter, 5] <= threshold:                 # Below 15%: Label as 1 for adding
             extracted_data[counter - 6, 6] = 1
+            count1 += 1
         elif extracted_data[counter, 5] >= (1 - threshold):         # Over 85%: Label as 2 for removing bikes
             extracted_data[counter - 6, 6] = 2
+            count2 += 1
         else:
             extracted_data[counter - 6, 6] = 0
+            count0 += 1
 
         counter += 1
 
@@ -98,6 +103,7 @@ def extract_data(data_, id_):
 
     # Write a new csv file
     dataset.to_csv(f"dataset/labelled_dataset_{id_}.csv", encoding='utf-8', index=False)
+    print(f"Count {id_}: {count0, count1, count2}")
 
 
 def main(args):
