@@ -1,11 +1,12 @@
 from numpy.lib.function_base import average
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.svm import LinearSVC
 import numpy as np
 from numpy import linspace
 import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.metrics import roc_curve, auc, confusion_matrix, f1_score,ConfusionMatrixDisplay
+from sklearn.metrics import roc_curve, auc, confusion_matrix, f1_score,ConfusionMatrixDisplay, log_loss
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
@@ -64,11 +65,13 @@ def confusion_matrix_visual(model, cm, title):
 
 
 def logistic_regression_wo_pen(features, labels):
+    from sklearn.calibration import CalibratedClassifierCV
     print("\n Logistic regression without penalty\n")
 
     xtrain, xtest, ytrain, ytest = train_test_split(features, labels, test_size=0.2)
     model = LogisticRegression(penalty='none',multi_class='ovr', solver='lbfgs',max_iter = 5000)
-    model.fit(xtrain, ytrain)
+    model.fit(xtrain,ytrain)
+    model = CalibratedClassifierCV(model, method="sigmoid",cv=5).fit(xtrain,ytrain)
     ypred = model.predict(xtest)
     scores = cross_val_score(model,xtest,ytest, cv = 5, scoring='f1_weighted')
     print("F1 scores:")
@@ -83,18 +86,18 @@ def logistic_regression(features, labels):
     print("\nLogistic regression model with penalty l2\n")
     from sklearn.linear_model import LogisticRegression
     from sklearn.model_selection import cross_val_score
+    from sklearn.calibration import CalibratedClassifierCV
 
-    C = [ 0.01, 0.1, 1, 5, 10, 40]
+    C = [0.0001, 0.1, 0.5, 1, 5]
     xtrain, xtest, ytrain, ytest = train_test_split(features, labels, test_size=0.2)
 
     mean_error = []
     std_error = []
 
     for c in C:
-        model = LogisticRegression(penalty='l2',multi_class='ovr', solver='lbfgs',C = c, max_iter = 5000)
-        #model = OneVsRestClassifier(LinearSVC(penalty='l2', dual=True, C=4, max_iter=5000))
-        model.fit(xtrain,ytrain)
-        scores = cross_val_score(model, xtest, ytest, cv = 5, scoring='f1_weighted')
+        model = LogisticRegression(penalty='l2',multi_class='ovr', solver='lbfgs',C = c, max_iter = 1000).fit(xtrain,ytrain)
+        cal_model = CalibratedClassifierCV(model, method="sigmoid",cv=5).fit(xtrain,ytrain)
+        scores = cross_val_score(cal_model, xtest, ytest, cv = 5, scoring='f1_weighted')
         print(scores.mean())
         mean_error.append(np.array(scores).mean())
         std_error.append(np.array(scores).std())
@@ -104,7 +107,7 @@ def logistic_regression(features, labels):
     plt.errorbar(C, mean_error, yerr=std_error, linewidth = 3)
     plt.xlabel('C', fontsize = 18)
     plt.ylabel('F1 Score', fontsize = 18)
-    plt.title('Cross-validation to determine c', fontsize = 18)
+    plt.title('Cross-validation to determine C', fontsize = 18)
     plt.rc('xtick', labelsize=14)
     plt.rc('ytick', labelsize=14)
     #plt.xlim((c_range[0],c_range[len(c_range)-1]))
@@ -113,7 +116,8 @@ def logistic_regression(features, labels):
 
 
     # Evaluation
-    model = LogisticRegression(penalty='none',multi_class='ovr', solver='lbfgs',max_iter = 5000)
+    model = LogisticRegression(penalty='l2',multi_class='ovr', solver='lbfgs',C = 0.1, max_iter = 1000).fit(xtrain,ytrain)
+    model = CalibratedClassifierCV(model, method="sigmoid",cv=5)
     model.fit(xtrain,ytrain)
     ypred = model.predict(xtest)
     print("\n\n----------------------Logistic Regression Evaluation (without penalty)----------------------\n\n")
@@ -152,37 +156,20 @@ def roc_plot(features, labels):
     plt.show()
 
 
-
 extract_csv(CSV_PATH)
-
-counter = 0
-arr = []
-y_arr = []
-
-for i, item in enumerate(x):
-    counter += 1
-    # if counter % 3 == 0 and (y[i] == 0 or y[i] == 1):
-    if counter % 3 == 0 and (y[i] == 0):
-        arr.append(item)
-        y_arr.append(y[i])
-    # if y[i] == 2:
-    if y[i] != 0:
-        arr.append(item)
-        y_arr.append(y[i])
-        # print(item)
-
-arr = np.asarray(arr)
-y_arr = np.asarray(y_arr)
-
-print(arr)
 
 
 print(f"Total number of dataset: {len(x)}")
-#dummy_classifier(arr, y_arr)
+
+## Baseline
+dummy_classifier(x, y)
+
 ## Logistic regression without penalty
-#
-#logistic_regression_wo_pen(arr,y_arr)
-## with penalty
-logistic_regression(arr,y_arr)
-roc_plot(arr, y_arr)
+logistic_regression_wo_pen(x,y)
+
+## Logistic regression with penalty
+logistic_regression(x,y)
+
+## ROC curve for logistic regression
+roc_plot(x, y)
 
